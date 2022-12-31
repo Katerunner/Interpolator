@@ -46,20 +46,22 @@ class Interpolator:
         for iteration in tqdm.trange(self.n_iter, disable=not self.verbose):
             scores = []
             for target_index in range(j_range):
-                explan_index = list(range(j_range))
-                explan_index.remove(target_index)
-                y = dfi.iloc[:, target_index].copy()
+                # If there are missing values in column
+                if len(inter_indexes[target_index]):
+                    explan_index = list(range(j_range))
+                    explan_index.remove(target_index)
+                    y = dfi.iloc[:, target_index].copy()
 
-                X = dfi.iloc[:, explan_index].copy()
-                X.fillna(X.mean(), inplace=True)
+                    X = dfi.iloc[:, explan_index].copy()
+                    X.fillna(X.mean(), inplace=True)
 
-                y_train = y[~inter_indexes[target_index]]
-                X_train = X[~inter_indexes[target_index]]
-                X_inter = X[inter_indexes[target_index]]
-                y_inter = self.model.fit(X_train, y_train).predict(X_inter)
-                y[y.isna()] = y_inter
-                scores.append(self.model.score(X_train, y_train))
-                dfi.iloc[:, target_index] = y
+                    y_train = y[~inter_indexes[target_index]]
+                    X_train = X[~inter_indexes[target_index]]
+                    X_inter = X[inter_indexes[target_index]]
+                    y_inter = self.model.fit(X_train, y_train).predict(X_inter)
+                    y[y.isna()] = y_inter
+                    scores.append(self.model.score(X_train, y_train))
+                    dfi.iloc[:, target_index] = y
 
             self.score_history.append(np.mean(scores))
 
