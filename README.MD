@@ -1,97 +1,68 @@
-# Python Project Template
-
-A low dependency and really simple to start project template for Python Projects.
-
-See also
-
-- [Flask-Project-Template](https://github.com/rochacbruno/flask-project-template/) for a full feature Flask project
-  including database, API, admin interface, etc.
-- [FastAPI-Project-Template](https://github.com/rochacbruno/fastapi-project-template/) The base to start an openapi
-  project featuring: SQLModel, Typer, FastAPI, JWT Token Auth, Interactive Shell, Management Commands.
-
-### HOW TO USE THIS TEMPLATE
-
-> **DO NOT FORK** this is meant to be used from **[Use this template](https://github.com/rochacbruno/python-project-template/generate)** feature.
-
-1. Click on **[Use this template](https://github.com/rochacbruno/python-project-template/generate)**
-3. Give a name to your project  
-   (e.g. `my_awesome_project` recommendation is to use all lowercase and underscores separation for repo names.)
-3. Wait until the first run of CI finishes  
-   (Github Actions will process the template and commit to your new repo)
-4. If you want [codecov](https://about.codecov.io/sign-up/) Reports and Automatic Release to [PyPI](https://pypi.org)  
-   On the new repository `settings->secrets` add your `PYPI_API_TOKEN` and `CODECOV_TOKEN` (get the tokens on respective
-   websites)
-4. Read the file [CONTRIBUTING.md](CONTRIBUTING.md)
-5. Then clone your new project and happy coding!
-
-> **NOTE**: **WAIT** until first CI run on github actions before cloning your new project.
-
-### What is included on this template?
-
-- 🖼️ Templates for starting multiple application types:
-    * **Basic low dependency** Python program (
-      default) [use this template](https://github.com/rochacbruno/python-project-template/generate)
-    * **Flask** with database, admin interface, restapi and
-      authentication [use this template](https://github.com/rochacbruno/flask-project-template/generate).
-      **or Run `make init` after cloning to generate a new project based on a template.**
-- 📦 A basic [setup.py](setup.py) file to provide installation, packaging and distribution for your project.  
-  Template uses setuptools because it's the de-facto standard for Python packages, you can run `make switch-to-poetry`
-  later if you want.
-- 🤖 A [Makefile](Makefile) with the most useful commands to install, test, lint, format and release your project.
-- 📃 Documentation structure using [mkdocs](http://www.mkdocs.org)
-- 💬 Auto generation of change log using **gitchangelog** to keep a HISTORY.md file automatically based on your commit
-  history on every release.
-- 🐋 A simple [Containerfile](Containerfile) to build a container image for your project.  
-  `Containerfile` is a more open standard for building container images than Dockerfile, you can use buildah or docker
-  with this file.
-- 🧪 Testing structure using [pytest](https://docs.pytest.org/en/latest/)
-- ✅ Code linting using [flake8](https://flake8.pycqa.org/en/latest/)
-- 📊 Code coverage reports using [codecov](https://about.codecov.io/sign-up/)
-- 🛳️ Automatic release to [PyPI](https://pypi.org) using [twine](https://twine.readthedocs.io/en/latest/) and github
-  actions.
-- 🎯 Entry points to execute your program using `python -m <project_name>` or `$ project_name` with basic CLI argument
-  parsing.
-- 🔄 Continuous integration using [Github Actions](.github/workflows/) with jobs to lint, test and release your project
-  on Linux, Mac and Windows environments.
-
-> Curious about architectural decisions on this template? read [ABOUT_THIS_TEMPLATE.md](ABOUT_THIS_TEMPLATE.md)  
-> If you want to contribute to this template please open an [issue](https://github.com/rochacbruno/python-project-template/issues) or fork and send a PULL REQUEST.
-
-[❤️ Sponsor this project](https://github.com/sponsors/rochacbruno/)
-
-<!--  DELETE THE LINES ABOVE THIS AND WRITE YOUR PROJECT README BELOW -->
-
 ---
 
-# project_name
+# DataFrame Interpolator Tool
 
-[![codecov](https://codecov.io/gh/author_name/project_urlname/branch/main/graph/badge.svg?token=project_urlname_token_here)](https://codecov.io/gh/author_name/project_urlname)
-[![CI](https://github.com/author_name/project_urlname/actions/workflows/main.yml/badge.svg)](https://github.com/author_name/project_urlname/actions/workflows/main.yml)
+[comment]: <> (## dataframe_interpolator)
 
-project_description
+[comment]: <> ([![codecov]&#40;https://codecov.io/gh/author_name/project_urlname/branch/main/graph/badge.svg?token=project_urlname_token_here&#41;]&#40;https://codecov.io/gh/author_name/project_urlname&#41;)
+
+[comment]: <> ([![CI]&#40;https://github.com/author_name/project_urlname/actions/workflows/main.yml/badge.svg&#41;]&#40;https://github.com/author_name/project_urlname/actions/workflows/main.yml&#41;)
+
+DataFrame Interpolator Tool is a python package that helps to solve the problem of missing data in pandas dataset. It
+uses machine learning models from `scikit-learn` package to fill in missing data in dataframe.
+
+The algorithm:
+
+- Pick column by column as target data
+- Rest columns are explanatory data
+- NaNs in explanatory columns are interpolated by mean value of the column
+- Non-NaN values from target columns are used for training
+- Estimator is trained on explanatory data to predict known values of target column
+- This estimator is used to predict unknown (missing or NaN) values of target column
+- New (predicted) values are inserted into the column
+- All the steps from the above applied to next column
+- Iteration is when all columns in data set are being processed by the estimator
+- Several iterations allow updating the previously predicted values, as the explanatory data was also updated in
+  previous steps.
+
+As a user, you need to provide the sklearn model, likely repressor:
+
+- RandomForestRegressor
+- LinearRegression
+- DecisionTreeRegressor
+- etc
+
+Script takes pandas `DataFrame` as an input. All values must be numerical, consider transforming your catogorical data
+to numerical labels or one-hot encodings.
 
 ## Install it from PyPI
 
+Package is not yet released into PyPI, so the installation is performed through the GitHub.
+
 ```bash
-pip install project_name
+pip install git+https://github.com/Katerunner/Interpolator
 ```
 
 ## Usage
 
+Basic scenario:
+
 ```py
-from project_name import BaseClass
-from project_name import base_function
+from interpolator.interpolator import Interpolator
+# Load core model
+from sklearn.ensemble import RandomForestRegressor
 
-BaseClass().base_method()
-base_function()
+# df = Pandas Dataframe
+
+# With normalization
+ip_model = Interpolator(model=RandomForestRegressor(),
+                        normalize=True,
+                        normalize_algorithm='minmax',
+                        n_iter=10,
+                        verbose=True)
+
+df_result = ip_model.fill_na(df.copy())
 ```
 
-```bash
-$ python -m project_name
-#or
-$ project_name
-```
+You can also see the example of usage in the `example_usage.ipynb`.
 
-## Development
-
-Read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
