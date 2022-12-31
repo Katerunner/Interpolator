@@ -48,7 +48,7 @@ pip install git+https://github.com/Katerunner/Interpolator
 Basic scenario:
 
 ```py
-from interpolator.interpolator import Interpolator
+from dataframe_interpolator.interpolator import Interpolator
 # Load core model
 from sklearn.ensemble import RandomForestRegressor
 
