@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import tqdm
 
 
@@ -9,6 +11,7 @@ class Interpolator:
     normalize_algorithm: str = None
     df_min = None
     df_max = None
+    score_history = None
 
     def __init__(self, model, normalize=True, normalize_algorithm='minmax', n_iter=20, verbose=True):
         self.model = model
@@ -16,8 +19,9 @@ class Interpolator:
         self.verbose = verbose
         self.normalize = normalize
         self.normalize_algorithm = normalize_algorithm
+        self.score_history = []
 
-    def normalize_dataframe(self, df):
+    def normalize_dataframe(self, df: pd.DataFrame):
         df_stage = df.copy()
 
         if self.normalize_algorithm == 'minmax':
@@ -30,7 +34,7 @@ class Interpolator:
             raise ValueError(f"No such normalize algorithm as {self.normalize_algorithm} supported")
         return dfn
 
-    def fill_na(self, df):
+    def fill_na(self, df: pd.DataFrame):
         dfi = self.normalize_dataframe(df) if self.normalize else df.copy()
         i_range, j_range = dfi.shape
 
@@ -39,7 +43,7 @@ class Interpolator:
         for j in range(j_range):
             inter_indexes.append(dfi.iloc[:, j].isna())
 
-        for iteration in tqdm.trange(5, disable=not self.verbose):
+        for iteration in tqdm.trange(self.n_iter, disable=not self.verbose):
             scores = []
             for target_index in range(j_range):
                 explan_index = list(range(j_range))
@@ -56,6 +60,8 @@ class Interpolator:
                 y[y.isna()] = y_inter
                 scores.append(self.model.score(X_train, y_train))
                 dfi.iloc[:, target_index] = y
+
+            self.score_history.append(np.mean(scores))
 
         df_result = dfi * (self.df_max - self.df_min) + self.df_min if self.normalize else dfi
         return df_result
