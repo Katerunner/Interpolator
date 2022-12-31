@@ -25,7 +25,7 @@ The algorithm:
 - Several iterations allow updating the previously predicted values, as the explanatory data was also updated in
   previous steps.
 
-As a user, you need to provide the sklearn model, likely repressor:
+As a user, you need to provide the sklearn model, likely regressor:
 
 - RandomForestRegressor
 - LinearRegression
