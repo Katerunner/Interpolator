@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import tqdm
 
 
 class Interpolator:
@@ -11,6 +10,8 @@ class Interpolator:
     normalize_algorithm: str = None
     df_min = None
     df_max = None
+    df_avg = None
+    df_std = None
     score_history = None
 
     def __init__(self, model, normalize=True, normalize_algorithm='minmax', n_iter=20, verbose=True):
@@ -29,7 +30,9 @@ class Interpolator:
             self.df_max = df_stage.max()
             dfn = (df_stage - self.df_min) / (self.df_max - self.df_min)
         elif self.normalize_algorithm == 'standard':
-            dfn = (df_stage - df_stage.mean()) / df_stage.std()
+            self.df_avg = df_stage.mean()
+            self.df_std = df_stage.std()
+            dfn = (df_stage - self.df_avg) / self.df_std
         else:
             raise ValueError(f"No such normalize algorithm as {self.normalize_algorithm} supported")
         return dfn
@@ -39,19 +42,50 @@ class Interpolator:
         i_range, j_range = dfi.shape
 
         # Get missing values to fill
+        tpass_indexes = []
+        ppass_indexes = []
         inter_indexes = []
+
         for j in range(j_range):
+            na_bool = dfi.iloc[:, j].isna()
+            if na_bool.sum() == 0:
+                ppass_indexes.append(j)
+            elif na_bool.sum() == len(dfi.iloc[:, j]):
+                tpass_indexes.append(j)
+
             inter_indexes.append(dfi.iloc[:, j].isna())
 
-        for iteration in tqdm.trange(self.n_iter, disable=not self.verbose):
+        if self.verbose:
+            print("Iter\t", *range(j_range), "Score", end=" ")
+
+        for iteration in range(self.n_iter):
             scores = []
+
+            if self.verbose:
+                print()
+                print(iteration, end="\t ")
+
             for target_index in range(j_range):
+
+                if self.verbose:
+                    pl = len(str(target_index)) - 1
+
+                    status_string = " " * pl + "."
+                    status_string = " " * pl + "E" if target_index in tpass_indexes else status_string
+                    status_string = " " * pl + "F" if target_index in ppass_indexes else status_string
+
+                    print(status_string, end=" ")
+
                 # If there are missing values in column
-                if len(inter_indexes[target_index]):
+                if target_index not in (ppass_indexes + tpass_indexes):
+
                     explan_index = list(range(j_range))
                     explan_index.remove(target_index)
-                    y = dfi.iloc[:, target_index].copy()
 
+                    for train_pass_index in tpass_indexes:
+                        explan_index.remove(train_pass_index)
+
+                    y = dfi.iloc[:, target_index].copy()
                     X = dfi.iloc[:, explan_index].copy()
                     X.fillna(X.mean(), inplace=True)
 
@@ -59,11 +93,21 @@ class Interpolator:
                     X_train = X[~inter_indexes[target_index]]
                     X_inter = X[inter_indexes[target_index]]
                     y_inter = self.model.fit(X_train, y_train).predict(X_inter)
-                    y[y.isna()] = y_inter
+                    y[inter_indexes[target_index]] = y_inter
                     scores.append(self.model.score(X_train, y_train))
                     dfi.iloc[:, target_index] = y
 
             self.score_history.append(np.mean(scores))
 
-        df_result = dfi * (self.df_max - self.df_min) + self.df_min if self.normalize else dfi
+            if self.verbose:
+                print(np.mean(scores).round(4), end="")
+
+        # Inverse normalization
+        if self.normalize_algorithm == 'minmax':
+            df_result = dfi * (self.df_max - self.df_min) + self.df_min if self.normalize else dfi
+        elif self.normalize_algorithm == 'standard':
+            df_result = dfi * self.df_std + self.df_avg
+        else:
+            df_result = dfi
+
         return df_result

@@ -18,3 +18,4 @@ share/python-wheels/
 *.egg
 MANIFEST
 dev.ipynb
+/dev_test.ipynb

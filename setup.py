@@ -1,8 +1,10 @@
 from setuptools import setup
 
+from dataframe_interpolator import version
+
 setup(
     name="dataframe-interpolator",
-    version="0.22.12.31",
+    version=version,
     author="Katerunner",
     author_email="teliuk2@gmail.com",
     description="Script that interpolates NaN in all pandas dataset that contains numerical values",
