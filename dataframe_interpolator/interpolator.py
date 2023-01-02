@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import pandas as pd
 
@@ -13,8 +15,9 @@ class Interpolator:
     df_avg = None
     df_std = None
     score_history = None
+    models_list = None
 
-    def __init__(self, model, normalize=True, normalize_algorithm='minmax', n_iter=20, verbose=True):
+    def __init__(self, model=None, normalize=True, normalize_algorithm='minmax', n_iter=20, verbose=True):
         self.model = model
         self.n_iter = n_iter
         self.verbose = verbose
@@ -37,9 +40,14 @@ class Interpolator:
             raise ValueError(f"No such normalize algorithm as {self.normalize_algorithm} supported")
         return dfn
 
-    def fill_na(self, df: pd.DataFrame):
+    def process(self, df: pd.DataFrame, models_list: list = None):
         dfi = self.normalize_dataframe(df) if self.normalize else df.copy()
         i_range, j_range = dfi.shape
+
+        self.check_models_list(models_list, j_range)
+
+        # Create models for each column
+        self.models_list = [copy.deepcopy(self.model)] * j_range if models_list is None else models_list
 
         # Get missing values to fill
         tpass_indexes = []
@@ -92,9 +100,9 @@ class Interpolator:
                     y_train = y[~inter_indexes[target_index]]
                     X_train = X[~inter_indexes[target_index]]
                     X_inter = X[inter_indexes[target_index]]
-                    y_inter = self.model.fit(X_train, y_train).predict(X_inter)
+                    y_inter = self.models_list[target_index].fit(X_train, y_train).predict(X_inter)
                     y[inter_indexes[target_index]] = y_inter
-                    scores.append(self.model.score(X_train, y_train))
+                    scores.append(self.models_list[target_index].score(X_train, y_train))
                     dfi.iloc[:, target_index] = y
 
             self.score_history.append(np.mean(scores))
@@ -111,3 +119,15 @@ class Interpolator:
             df_result = dfi
 
         return df_result
+
+    def get_models(self):
+        return self.models_list
+
+    def check_models_list(self, models_list, j_range):
+        # Raise error if no model is specified
+        if self.model is None and models_list is None:
+            raise ValueError("No model was specified in __init__ or in process method")
+
+        # Raise error if number of models does not correspond to number of columns
+        if models_list is not None and len(models_list) != j_range:
+            raise IndexError("Number of models must be equal to the number of columns")

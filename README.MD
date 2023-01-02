@@ -61,7 +61,7 @@ ip_model = Interpolator(model=RandomForestRegressor(),
                         n_iter=10,
                         verbose=True)
 
-df_result = ip_model.fill_na(df.copy())
+df_result = ip_model.process(df.copy())
 ```
 
 You can also see the example of usage in the `example_usage.ipynb`.

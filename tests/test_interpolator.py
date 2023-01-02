@@ -10,6 +10,8 @@ from dataframe_interpolator.interpolator import Interpolator
 
 
 def create_example_dataset(shape=(1000, 10), missing=0.3):
+    assert shape[1] >= 3, "Must be more then 2 columns, 1-st is full, 2-nd is empty"
+
     data = np.random.rand(shape[0], shape[1])
     data = pd.DataFrame(data)
     i_range, j_range = data.shape
@@ -29,20 +31,24 @@ class TestInterpolator(TestCase):
 
     def general_test(self, data, data_result):
         self.assertEqual(data.shape, data_result.shape, msg="Shapes are different")
-        self.assertEqual(data_result.iloc[:, 1].isna().sum(), 1000, msg="Empty column is not empty now")
-        for j in [0, 2, 3, 4, 5, 6, 7, 8, 9]:
+        self.assertEqual(data_result.iloc[:, 1].isna().sum(), data.shape[0], msg="Empty column is not empty now")
+
+        full_columns = list(range(data.shape[1]))
+        full_columns.remove(1)
+
+        for j in full_columns:
             self.assertEqual(data_result.iloc[:, j].isna().sum(), 0, msg="Missing values were not all interpolated")
 
     def test_1_general(self):
         data = create_example_dataset(shape=(1000, 10), missing=0.3)
         dip = Interpolator(LinearRegression(), n_iter=10, verbose=True)
-        data_result = dip.fill_na(data.copy())
+        data_result = dip.process(data.copy())
         self.general_test(data, data_result)
 
     def test_2_no_normalization(self):
         data = create_example_dataset(shape=(1000, 10), missing=0.3)
         dip = Interpolator(LinearRegression(), normalize=False, n_iter=10, verbose=True)
-        data_result = dip.fill_na(data.copy())
+        data_result = dip.process(data.copy())
         self.general_test(data, data_result)
 
     def test_3_all_sklearn(self):
@@ -55,17 +61,35 @@ class TestInterpolator(TestCase):
 
         for regressor in regressors:
             dip = Interpolator(regressor(), normalize=False, n_iter=2, verbose=True)
-            data_result = dip.fill_na(data.copy())
+            data_result = dip.process(data.copy())
             self.general_test(data, data_result)
 
     def test_4_half_scenario(self):
         data = create_example_dataset(shape=(1000, 10), missing=0.5)
         dip = Interpolator(LinearRegression(), n_iter=10, verbose=True)
-        data_result = dip.fill_na(data.copy())
+        data_result = dip.process(data.copy())
         self.general_test(data, data_result)
 
     def test_5_bad_scenario(self):
         data = create_example_dataset(shape=(1000, 10), missing=0.85)
         dip = Interpolator(LinearRegression(), n_iter=10, verbose=True)
-        data_result = dip.fill_na(data.copy())
+        data_result = dip.process(data.copy())
         self.general_test(data, data_result)
+
+    def test_5_get_models_from_single_model_in_init(self):
+        data = create_example_dataset(shape=(1000, 10), missing=0.85)
+        dip = Interpolator(LinearRegression(), n_iter=10, verbose=True)
+        data_result = dip.process(data.copy())
+        self.general_test(data, data_result)
+
+        models_list = dip.get_models()
+        self.assertEqual(len(models_list), data.shape[1])
+
+    def test_6_get_models_from_directly_specifying_in_method(self):
+        data = create_example_dataset(shape=(1000, 3), missing=0.85)
+        dip = Interpolator(n_iter=10, verbose=True)
+        data_result = dip.process(data.copy(), [LinearRegression(), RandomForestRegressor(), DecisionTreeRegressor()])
+        self.general_test(data, data_result)
+
+        models_list = dip.get_models()
+        self.assertEqual(len(models_list), data.shape[1])
