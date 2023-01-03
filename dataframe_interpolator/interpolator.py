@@ -10,6 +10,7 @@ class Interpolator:
     verbose: bool = None
     normalize: bool = None
     normalize_algorithm: str = None
+    min_present: float = None
     df_min = None
     df_max = None
     df_avg = None
@@ -17,20 +18,28 @@ class Interpolator:
     score_history = None
     models_list = None
 
-    def __init__(self, model=None, normalize=True, normalize_algorithm='minmax', n_iter=20, verbose=True):
+    def __init__(self, model=None,
+                 normalize=True,
+                 normalize_algorithm='minmax',
+                 n_iter=20,
+                 min_present=0.05,
+                 verbose=True):
         self.model = model
         self.n_iter = n_iter
         self.verbose = verbose
         self.normalize = normalize
         self.normalize_algorithm = normalize_algorithm
         self.score_history = []
+        self.min_present = min_present
+
+        assert 0 <= self.min_present <= 1, "min_present should be in [0, 1]"
 
     def normalize_dataframe(self, df: pd.DataFrame):
         df_stage = df.copy()
 
         if self.normalize_algorithm == 'minmax':
-            self.df_min = df_stage.min()
-            self.df_max = df_stage.max()
+            self.df_min = df_stage.min() - 0.000000001
+            self.df_max = df_stage.max() + 0.000000001
             dfn = (df_stage - self.df_min) / (self.df_max - self.df_min)
         elif self.normalize_algorithm == 'standard':
             self.df_avg = df_stage.mean()
@@ -58,7 +67,7 @@ class Interpolator:
             na_bool = dfi.iloc[:, j].isna()
             if na_bool.sum() == 0:
                 ppass_indexes.append(j)
-            elif na_bool.sum() == len(dfi.iloc[:, j]):
+            elif (na_bool.sum() >= i_range - 2) or (na_bool.sum() > int(i_range * (1 - self.min_present))):
                 tpass_indexes.append(j)
 
             inter_indexes.append(dfi.iloc[:, j].isna())
@@ -109,6 +118,9 @@ class Interpolator:
 
             if self.verbose:
                 print(np.mean(scores).round(4), end="")
+
+        if self.verbose:
+            print()
 
         # Inverse normalization
         if self.normalize_algorithm == 'minmax':
