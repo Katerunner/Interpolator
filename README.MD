@@ -25,7 +25,8 @@ The algorithm:
 - Several iterations allow updating the previously predicted values, as the explanatory data was also updated in
   previous steps.
 
-As a user, you need to provide the sklearn model, likely regressor:
+As a user, you need to provide the sklearn model or the similar syntax model with fit, score and predict methods, likely
+regressor:
 
 - RandomForestRegressor
 - LinearRegression
@@ -79,9 +80,8 @@ display(df_result)  # If in Jupyter
 Interpolator also saves the models for each column. If the model was provided in `__init__`, then all the columns are
 trained using the copy of the same model and `get_models()` method will return each trained model for each column.
 
-In
-addition to this, the separate models for each column can be specified in `process()` method `models_list` parameter. In
-this case the provided models will be trained corresponding to each column and return by `get_models()` method. The
+In addition to this, the separate models for each column can be specified in `process()` method `models_list` parameter.
+In this case the provided models will be trained corresponding to each column and return by `get_models()` method. The
 model specified in `__init__` will be ignored in this case.
 
 ```python
