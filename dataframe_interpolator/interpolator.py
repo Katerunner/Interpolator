@@ -49,6 +49,15 @@ class Interpolator:
             raise ValueError(f"No such normalize algorithm as {self.normalize_algorithm} supported")
         return dfn
 
+    def inverse_normalize_dataframe(self, df: pd.DataFrame):
+        if self.normalize_algorithm == 'minmax':
+            df_result = df * (self.df_max - self.df_min) + self.df_min if self.normalize else df
+        elif self.normalize_algorithm == 'standard':
+            df_result = df * self.df_std + self.df_avg
+        else:
+            raise ValueError(f"No such normalize algorithm as {self.normalize_algorithm} supported")
+        return df_result
+
     def process(self, df: pd.DataFrame, models_list: list = None):
         dfi = self.normalize_dataframe(df) if self.normalize else df.copy()
         i_range, j_range = dfi.shape
@@ -122,13 +131,7 @@ class Interpolator:
         if self.verbose:
             print()
 
-        # Inverse normalization
-        if self.normalize_algorithm == 'minmax':
-            df_result = dfi * (self.df_max - self.df_min) + self.df_min if self.normalize else dfi
-        elif self.normalize_algorithm == 'standard':
-            df_result = dfi * self.df_std + self.df_avg
-        else:
-            df_result = dfi
+        df_result = self.inverse_normalize_dataframe(dfi) if self.normalize else dfi
 
         return df_result
 
