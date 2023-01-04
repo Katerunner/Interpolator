@@ -48,11 +48,22 @@ pip install git+https://github.com/Katerunner/Interpolator
 Basic scenario:
 
 ```py
+import numpy as np
+import pandas as pd
 from dataframe_interpolator.interpolator import Interpolator
 # Load core model
 from sklearn.ensemble import RandomForestRegressor
 
-# df = Pandas Dataframe
+# Generate example data
+data = np.random.rand(1000, 10)
+data = pd.DataFrame(data)
+i_range, j_range = data.shape
+
+# With prob of 0.3 value is NaN
+for i in range(i_range):
+    for j in range(1, j_range):
+        if np.random.rand() < 0.3:
+            data.iloc[i, j] = np.nan
 
 # With normalization
 ip_model = Interpolator(model=RandomForestRegressor(),
@@ -61,7 +72,20 @@ ip_model = Interpolator(model=RandomForestRegressor(),
                         n_iter=10,
                         verbose=True)
 
-df_result = ip_model.process(df.copy())
+df_result = ip_model.process(data.copy())
+display(df_result)  # If in Jupyter
+```
+
+Interpolator also saves the models for each column. If the model was provided in `__init__`, then all the columns are
+trained using the copy of the same model and `get_models()` method will return each trained model for each column.
+
+In
+addition to this, the separate models for each column can be specified in `process()` method `models_list` parameter. In
+this case the provided models will be trained corresponding to each column and return by `get_models()` method. The
+model specified in `__init__` will be ignored in this case.
+
+```python
+ip_model.get_models()
 ```
 
 You can also see the example of usage in the `example_usage.ipynb`.
