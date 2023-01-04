@@ -32,7 +32,7 @@ As a user, you need to provide the sklearn model, likely regressor:
 - DecisionTreeRegressor
 - etc
 
-Script takes pandas `DataFrame` as an input. All values must be numerical, consider transforming your catogorical data
+Script takes pandas `DataFrame` as an input. All values must be numerical, consider transforming your categorical data
 to numerical labels or one-hot encodings.
 
 ## Install it from PyPI
